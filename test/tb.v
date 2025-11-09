@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module tb_tt_um_alu_trojan;
+module tb();
     // Testbench signals
     reg [7:0] ui_in;
     reg [7:0] uio_in;
@@ -32,10 +32,11 @@ module tb_tt_um_alu_trojan;
     end
     
     // Test stimulus
-    initial begin
-        // Initialize VCD dump for waveform viewing
-        $dumpfile("tb_tt_um_alu_trojan.vcd");
-        $dumpvars(0, tb_tt_um_alu_trojan);
+   initial begin
+    $dumpfile("tb.vcd");
+    $dumpvars(0, tb);
+    #1;
+  end
         
         // Initialize signals
         ena = 1;
