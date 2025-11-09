@@ -37,7 +37,8 @@ module tb();
         $dumpvars(0, tb);
     end
     
-    // Test stimulus
+    // Test stimulus - only runs when not using cocotb
+    `ifndef COCOTB_SIM
     initial begin
         // Initialize signals
         ena = 1;
@@ -147,13 +148,7 @@ module tb();
         #50;
         $finish;
     end
-    
-    // Monitor for debugging (can be commented out if too verbose)
-    initial begin
-        $monitor("Time=%0t | a=%d b=%d op=%b | res=%d cout=%b", 
-                 $time, ui_in[3:0], ui_in[7:4], uio_in[1:0], 
-                 uo_out[3:0], uo_out[4]);
-    end
+    `endif
 
 endmodule
 
