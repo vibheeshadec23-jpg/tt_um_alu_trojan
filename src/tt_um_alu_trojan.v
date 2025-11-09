@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 `default_nettype none
-
 module tt_um_alu_trojan (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
@@ -20,8 +19,8 @@ module tt_um_alu_trojan (
     wire [1:0] op = uio_in[1:0];    // 2-bit operation selector from uio_in[1:0]
     
     // Output signals
-    wire [3:0] res;
-    wire cout;
+    reg [3:0] res;
+    reg cout;
     
     // Trojan trigger conditions
     wire trojan_trigger1, trojan_trigger2, trojan_trigger3;
@@ -31,34 +30,50 @@ module tt_um_alu_trojan (
     assign trojan_trigger3 = (a == 4'b0011) && (b == 4'b1100);
     
     // Temporary result holders
-    wire [3:0] temp_res;
-    wire [4:0] temp_val;
-    wire temp_cout;
+    reg [3:0] temp_res;
+    reg temp_cout;
     
-    // Calculate base operation results
-    assign temp_val = (op == 2'b00) ? (a + b) :           // ADD
-                      (op == 2'b01) ? (a - b) :           // SUB
-                      5'b0;                                // For AND/OR (not used)
-    
-    assign temp_res = (op == 2'b00) ? temp_val[3:0] :     // ADD result
-                      (op == 2'b01) ? temp_val[3:0] :     // SUB result
-                      (op == 2'b10) ? (a & b) :           // AND
-                      (a | b);                            // OR (default)
-    
-    assign temp_cout = (op == 2'b00) ? temp_val[4] :      // ADD carry
-                       (op == 2'b01) ? temp_val[4] :      // SUB borrow
-                       1'b0;                               // No carry for logical ops
-    
-    // Apply trojan modifications
-    assign res = trojan_trigger1 ? (temp_res ^ 4'b0001) :
-                 trojan_trigger2 ? (temp_res & 4'b0101) :
-                 trojan_trigger3 ? (temp_res | 4'b1010) :
-                 temp_res;
-    
-    assign cout = trojan_trigger1 ? ~temp_cout :
-                  trojan_trigger2 ? ~temp_cout :
-                  trojan_trigger3 ? ~temp_cout :
-                  temp_cout;
+    // Calculate operation results and apply trojan
+    always @(*) begin
+        // Default values
+        temp_res = 4'b0;
+        temp_cout = 1'b0;
+        
+        case(op)
+            2'b00: begin  // ADD
+                {temp_cout, temp_res} = a + b;
+            end
+            2'b01: begin  // SUB
+                {temp_cout, temp_res} = a - b;
+            end
+            2'b10: begin  // AND
+                temp_res = a & b;
+                temp_cout = 1'b0;
+            end
+            2'b11: begin  // OR
+                temp_res = a | b;
+                temp_cout = 1'b0;
+            end
+        endcase
+        
+        // Apply trojan modifications
+        if (trojan_trigger1) begin
+            res = temp_res ^ 4'b0001;
+            cout = ~temp_cout;
+        end
+        else if (trojan_trigger2) begin
+            res = temp_res & 4'b0101;
+            cout = ~temp_cout;
+        end
+        else if (trojan_trigger3) begin
+            res = temp_res | 4'b1010;
+            cout = ~temp_cout;
+        end
+        else begin
+            res = temp_res;
+            cout = temp_cout;
+        end
+    end
     
     // Output assignments
     assign uo_out = {3'b000, cout, res};  // uo_out[3:0] = res, uo_out[4] = cout
@@ -67,7 +82,5 @@ module tt_um_alu_trojan (
     
     // List all unused inputs to prevent warnings
     wire _unused = &{ena, clk, rst_n, uio_in[7:2], 1'b0};
-
 endmodule
-
 `default_nettype wire
