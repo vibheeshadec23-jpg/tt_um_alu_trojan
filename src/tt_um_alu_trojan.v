@@ -35,7 +35,7 @@ module tt_um_alu_trojan (
     reg [4:0] temp_val;
     reg temp_cout;
     
-    always @(*) begin
+    always @(posedge clk) begin
         case(op)
             2'b00: begin  // ADD
                 temp_val = a + b;
