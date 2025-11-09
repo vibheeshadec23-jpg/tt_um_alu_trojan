@@ -13,8 +13,16 @@ module tb();
     wire [7:0] uio_out;
     wire [7:0] uio_oe;
     
+    // Power supply signals for gate-level simulation
+    wire VPWR = 1'b1;
+    wire VGND = 1'b0;
+    
     // Instantiate the DUT (Device Under Test)
     tt_um_alu_trojan dut (
+    `ifdef GL_TEST
+        .VPWR(VPWR),
+        .VGND(VGND),
+    `endif
         .ui_in(ui_in),
         .uo_out(uo_out),
         .uio_in(uio_in),
