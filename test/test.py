@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, Timer
 
 @cocotb.test()
 async def test_project(dut):
@@ -21,6 +21,7 @@ async def test_project(dut):
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 2)
     
     dut._log.info("Test ALU project behavior")
     
@@ -29,17 +30,16 @@ async def test_project(dut):
     
     for op in range(4):
         dut._log.info(f"Testing operation {op}: {op_names[op]}")
-        dut.uio_in.value = op  # Set operation code
         
         for a in range(16):
             for b in range(16):
+                # Set operation code first
+                dut.uio_in.value = op
                 # Set input values
                 dut.ui_in.value = (b << 4) | a  # ui_in[7:4] = b, ui_in[3:0] = a
                 
                 # Wait for combinational logic to settle
-                # Since this is combinational, we don't strictly need a clock cycle
-                # but keeping it helps with stability
-                await ClockCycles(dut.clk, 1)
+                await Timer(1, units='ns')
                 
                 # Extract result and carry from output
                 output_val = int(dut.uo_out.value)
@@ -134,9 +134,9 @@ async def test_specific_cases(dut):
     
     for a, b, op, name in test_cases:
         dut._log.info(f"Testing: {name}")
-        dut.ui_in.value = (b << 4) | a
         dut.uio_in.value = op
-        await ClockCycles(dut.clk, 1)
+        dut.ui_in.value = (b << 4) | a
+        await Timer(1, units='ns')
         
         output_val = int(dut.uo_out.value)
         result = output_val & 0x0F
