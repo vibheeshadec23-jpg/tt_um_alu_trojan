@@ -31,13 +31,14 @@ module tb();
         forever #5 clk = ~clk;
     end
     
+    // VCD dump
+    initial begin
+        $dumpfile("tb.vcd");
+        $dumpvars(0, tb);
+    end
+    
     // Test stimulus
-   initial begin
-    $dumpfile("tb.vcd");
-    $dumpvars(0, tb);
-    #1;
-  end
-        
+    initial begin
         // Initialize signals
         ena = 1;
         rst_n = 0;
