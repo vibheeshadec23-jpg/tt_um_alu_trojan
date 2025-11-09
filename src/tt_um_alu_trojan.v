@@ -18,65 +18,37 @@ module tt_um_alu_trojan (
     wire [3:0] b = ui_in[7:4];      // 4-bit input B from ui_in[7:4]
     wire [1:0] op = uio_in[1:0];    // 2-bit operation selector from uio_in[1:0]
     
-    // Output signals
-    reg [3:0] res;
-    reg cout;
-    
     // Trojan trigger conditions
-    wire trojan_trigger1, trojan_trigger2, trojan_trigger3;
-    
-    assign trojan_trigger1 = (a == 4'b1111) && (b == 4'b1111);
-    assign trojan_trigger2 = (a == 4'b1001) && (b == 4'b0110);
-    assign trojan_trigger3 = (a == 4'b0011) && (b == 4'b1100);
+    wire trojan_trigger1 = (a == 4'b1111) && (b == 4'b1111);
+    wire trojan_trigger2 = (a == 4'b1001) && (b == 4'b0110);
+    wire trojan_trigger3 = (a == 4'b0011) && (b == 4'b1100);
     
     // Temporary result holders
-    reg [3:0] temp_res;
-    reg temp_cout;
+    wire [4:0] add_result = a + b;
+    wire [4:0] sub_result = a - b;
+    wire [3:0] and_result = a & b;
+    wire [3:0] or_result = a | b;
     
-    // Calculate operation results and apply trojan
-    always @(*) begin
-        // Default values
-        temp_res = 4'b0;
-        temp_cout = 1'b0;
-        
-        case(op)
-            2'b00: begin  // ADD
-                {temp_cout, temp_res} = a + b;
-            end
-            2'b01: begin  // SUB
-                {temp_cout, temp_res} = a - b;
-            end
-            2'b10: begin  // AND
-                temp_res = a & b;
-                temp_cout = 1'b0;
-            end
-            2'b11: begin  // OR
-                temp_res = a | b;
-                temp_cout = 1'b0;
-            end
-        endcase
-        
-        // Apply trojan modifications
-        if (trojan_trigger1) begin
-            res = temp_res ^ 4'b0001;
-            cout = ~temp_cout;
-        end
-        else if (trojan_trigger2) begin
-            res = temp_res & 4'b0101;
-            cout = ~temp_cout;
-        end
-        else if (trojan_trigger3) begin
-            res = temp_res | 4'b1010;
-            cout = ~temp_cout;
-        end
-        else begin
-            res = temp_res;
-            cout = temp_cout;
-        end
-    end
+    // Select base operation result
+    wire [3:0] base_res = (op == 2'b00) ? add_result[3:0] :
+                          (op == 2'b01) ? sub_result[3:0] :
+                          (op == 2'b10) ? and_result :
+                          or_result;
+    
+    wire base_cout = (op == 2'b00) ? add_result[4] :
+                     (op == 2'b01) ? sub_result[4] :
+                     1'b0;
+    
+    // Apply trojan modifications
+    wire [3:0] final_res = trojan_trigger1 ? (base_res ^ 4'b0001) :
+                           trojan_trigger2 ? (base_res & 4'b0101) :
+                           trojan_trigger3 ? (base_res | 4'b1010) :
+                           base_res;
+    
+    wire final_cout = (trojan_trigger1 | trojan_trigger2 | trojan_trigger3) ? ~base_cout : base_cout;
     
     // Output assignments
-    assign uo_out = {3'b000, cout, res};  // uo_out[3:0] = res, uo_out[4] = cout
+    assign uo_out = {3'b000, final_cout, final_res};
     assign uio_out = 8'b0;
     assign uio_oe = 8'b0;
     
